@@ -123,7 +123,9 @@ export default function Dashboard({ session }) {
       const now = new Date();
 
       if (!openRecord) {
-        const today = now.toISOString().split('T')[0];
+        const now = new Date();
+        const nowGMT8 = new Date(now.getTime() + 8 * 60 * 60 * 1000); // convert to GMT+8
+        const today = nowGMT8.toISOString().split('T')[0];
         const { error: insertError } = await supabase.from('attendance').insert([{
           user_id: session.user.id,
           date: today,
@@ -178,12 +180,14 @@ export default function Dashboard({ session }) {
   const formatTime = (ts) => {
     if (!ts) return '-';
     const date = new Date(ts);
-    let hours = date.getHours();
-    const minutes = date.getMinutes();
+    const gmt8 = new Date(date.getTime() + 8 * 60 * 60 * 1000); // convert to GMT+8
+    let hours = gmt8.getHours();
+    const minutes = gmt8.getMinutes();
     const ampm = hours >= 12 ? 'PM' : 'AM';
     hours = hours % 12 || 12;
     return `${hours}:${minutes < 10 ? '0' + minutes : minutes} ${ampm}`;
   };
+
 
   const calcTotalHours = (start, end) => {
     if (!start || !end) return '-';
@@ -199,6 +203,7 @@ export default function Dashboard({ session }) {
   const filteredRecords = records.filter((rec) => {
     if (!rec.date) return false;
     const recordDate = new Date(rec.date);
+    recordDate.setHours(recordDate.getHours() + 8); // adjust to GMT+8
     const today = new Date();
     const pastWeek = new Date();
     pastWeek.setDate(today.getDate() - 6);
