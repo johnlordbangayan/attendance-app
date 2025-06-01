@@ -1,0 +1,42 @@
+.attendance-container {
+  max-width: 1200px;
+  margin: auto;
+  padding: 20px;
+  text-align: center;
+}
+
+.centered-table {
+  margin: 20px auto;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.centered-table th,
+.centered-table td {
+  border: 1px solid #ccc;
+  padding: 8px;
+  text-align: center;
+}
+
+.centered-table img {
+  border-radius: 5px;
+}
+
+.filters {
+  margin-bottom: 20px;
+}
+
+.filters input,
+.filters button {
+  margin-right: 10px;
+  padding: 5px 10px;
+}
+
+.export-btn {
+  background-color: red;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  cursor: pointer;
+  border-radius: 4px;
+}

@@ -1,0 +1,210 @@
+/* Container */
+.employee-dashboard-container {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  font-family: 'Inter', sans-serif;
+  color: #1a202c;
+}
+
+/* Welcome header */
+.employee-dashboard-welcome-header {
+  font-weight: 800;
+  font-size: 2.5rem;
+  color: #b91c1c;
+  margin-bottom: 0.5rem;
+}
+
+/* Role */
+.employee-dashboard-role {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+}
+
+/* Logout button */
+.employee-dashboard-logout-btn {
+  background-color: #b91c1c;
+  color: white;
+  padding: 0.5rem 1.25rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  border: none;
+  box-shadow: 0 4px 6px rgb(185 28 28 / 0.4);
+  cursor: pointer;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  margin-bottom: 2rem;
+}
+.employee-dashboard-logout-btn:hover {
+  background-color: #991b1b;
+  box-shadow: 0 6px 10px rgb(153 27 27 / 0.5);
+}
+
+/* Station input wrapper */
+.employee-dashboard-station-input-wrapper {
+  margin-bottom: 1.5rem;
+}
+
+/* Station label */
+.employee-dashboard-station-label {
+  font-weight: 600;
+  font-size: 1rem;
+  display: block;
+}
+
+/* Station input */
+.employee-dashboard-station-input {
+  margin-left: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  border: 1.5px solid #d1d5db;
+  border-radius: 0.4rem;
+  font-size: 1rem;
+  width: 300px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.employee-dashboard-station-input:focus {
+  outline: none;
+  border-color: #ef4444;
+  box-shadow: 0 0 6px #ef4444aa;
+}
+
+/* Camera section */
+.employee-dashboard-camera-section {
+  margin-bottom: 2rem;
+}
+
+/* Webcam */
+.employee-dashboard-webcam {
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 8px rgb(0 0 0 / 0.15);
+  margin-bottom: 0.75rem;
+}
+
+/* Camera active container */
+.employee-dashboard-camera-active {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Start Camera button */
+.employee-dashboard-start-camera-btn {
+  padding: 0.5rem 1rem;
+  background-color: #2563eb;
+  color: white;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: background-color 0.3s ease;
+}
+.employee-dashboard-start-camera-btn:hover {
+  background-color: #1d4ed8;
+}
+
+/* Capture button */
+.employee-dashboard-capture-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  min-width: 120px;
+  color: white;
+  transition: background-color 0.3s ease;
+}
+.employee-dashboard-capture-btn.enabled {
+  background-color: #16a34a;
+}
+.employee-dashboard-capture-btn.enabled:hover {
+  background-color: #15803d;
+}
+.employee-dashboard-capture-btn.disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* Report container */
+.employee-dashboard-report-container {
+  margin-top: 3rem;
+}
+
+/* Report header */
+.employee-dashboard-report-header {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #b91c1c;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+/* Loading text */
+.employee-dashboard-loading-text {
+  text-align: center;
+  font-weight: 600;
+  color: #6b7280;
+  margin: 2rem 0;
+}
+
+/* Table wrapper */
+.employee-dashboard-table-wrapper {
+  overflow-x: auto;
+  border: 2px solid #b91c1c;
+  border-radius: 0.75rem;
+  box-shadow: 0 0 15px rgb(185 28 28 / 0.3);
+}
+
+/* Table */
+.employee-dashboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  color: #1f2937;
+  text-align: center;
+}
+
+/* Table header */
+.employee-dashboard-table thead tr {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.employee-dashboard-table th,
+.employee-dashboard-table td {
+  border: 1.5px solid #991b1b;
+  padding: 0.5rem 0.75rem;
+}
+
+/* Table body rows */
+.employee-dashboard-table tbody tr {
+  border-top: 1.5px solid #fca5a5;
+}
+
+/* No records cell */
+.employee-dashboard-no-records {
+  padding: 1.5rem;
+  font-weight: 600;
+  color: #9ca3af;
+}
+
+/* Links */
+.employee-dashboard-table a {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.employee-dashboard-table a:hover {
+  color: #1e40af;
+}
+
+/* Images inside table */
+.employee-dashboard-table img {
+  width: 64px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 0.375rem;
+  box-shadow: 0 0 6px rgb(0 0 0 / 0.1);
+}
