@@ -3,7 +3,6 @@ import { supabase } from '../supabaseClient';
 import Webcam from 'react-webcam';
 import './Dashboard.css';
 
-
 export default function Dashboard({ session }) {
   const webcamRef = useRef(null);
   const [station, setStation] = useState('');
@@ -12,6 +11,7 @@ export default function Dashboard({ session }) {
   const [userProfile, setUserProfile] = useState(null);
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [processing, setProcessing] = useState(false); // prevents double submissions
 
   useEffect(() => {
     async function fetchProfile() {
@@ -38,6 +38,10 @@ export default function Dashboard({ session }) {
       console.error('Error checking attendance:', error);
       return null;
     }
+    // Additional guard: if the record is from yesterday but already has time_out, ignore
+    if (data && data.time_out) {
+      return null;
+    }
     return data;
   };
 
@@ -45,20 +49,39 @@ export default function Dashboard({ session }) {
     async function fetchStatus() {
       const openRecord = await checkOpenAttendanceRecord();
       if (!openRecord) setAttendanceStatus('Time In');
-      else if (openRecord && !openRecord.time_out) setAttendanceStatus('Time Out');
+      else if (!openRecord.time_out) setAttendanceStatus('Time Out');
       else setAttendanceStatus('Done');
     }
     fetchStatus();
   }, []);
 
+  const fetchAttendanceRecords = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('attendance')
+      .select('date, time_in, time_out, station, location_in, location_out, photo_in, photo_out')
+      .eq('user_id', session.user.id)
+      .order('time_in', { ascending: false });
+    if (!error) setRecords(data);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchAttendanceRecords();
+  }, []);
+
   const handleCapture = async () => {
+    if (processing) return;
     if (!webcamRef.current || (attendanceStatus === 'Time In' && !station.trim())) {
       alert('Please turn on the camera and enter your Station.');
       return;
     }
 
+    setProcessing(true);
+
     if (!navigator.geolocation) {
       alert('Geolocation is not supported by your browser');
+      setProcessing(false);
       return;
     }
 
@@ -69,6 +92,7 @@ export default function Dashboard({ session }) {
 
       if (!imageSrc) {
         alert('Failed to capture image.');
+        setProcessing(false);
         return;
       }
 
@@ -86,6 +110,7 @@ export default function Dashboard({ session }) {
 
       if (uploadError) {
         alert('Upload failed: ' + uploadError.message);
+        setProcessing(false);
         return;
       }
 
@@ -95,67 +120,60 @@ export default function Dashboard({ session }) {
 
       const photoUrl = publicUrlData.publicUrl;
       const openRecord = await checkOpenAttendanceRecord();
+      const now = new Date();
 
       if (!openRecord) {
-        const now = new Date();
         const today = now.toISOString().split('T')[0];
-        const { error: insertError } = await supabase
-          .from('attendance')
-          .insert([{
-            user_id: session.user.id,
-            date: today,
-            station: station.trim(),
-            photo_in: photoUrl,
-            location_in: locationString,
-            time_in: now.toISOString(),
-          }]);
+        const { error: insertError } = await supabase.from('attendance').insert([{
+          user_id: session.user.id,
+          date: today,
+          station: station.trim(),
+          photo_in: photoUrl,
+          location_in: locationString,
+          time_in: now.toISOString(), // okay for time_in to use client time
+        }]);
         if (insertError) {
           alert('Failed to save time in: ' + insertError.message);
-          return;
+        } else {
+          alert('Time In recorded successfully!');
+          setAttendanceStatus('Time Out');
         }
-        alert('Time In recorded successfully!');
-        setAttendanceStatus('Time Out');
       } else if (!openRecord.time_out) {
-        const now = new Date();
-        const { error: updateError } = await supabase
-          .from('attendance')
+        const { error: updateError } = await supabase.from('attendance')
           .update({
             photo_out: photoUrl,
             location_out: locationString,
-            time_out: now.toISOString(),
           })
           .eq('id', openRecord.id);
+
         if (updateError) {
-          alert('Failed to save time out: ' + updateError.message);
+          alert('Failed to update photo/location: ' + updateError.message);
+          setProcessing(false);
           return;
         }
-        alert('Time Out recorded successfully!');
-        setAttendanceStatus('Done');
+
+        const { error: rpcError } = await supabase.rpc('update_time_out', {
+          attendance_id: openRecord.id,
+        });
+
+        if (rpcError) {
+          alert('Failed to save time out: ' + rpcError.message);
+        } else {
+          alert('Time Out recorded successfully!');
+          setAttendanceStatus('Done');
+        }
       } else {
         alert('You have already timed out.');
       }
 
+      setProcessing(false);
       fetchAttendanceRecords();
     }, (error) => {
       alert('Geolocation error: ' + error.message);
+      setProcessing(false);
     });
   };
 
-  const fetchAttendanceRecords = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('attendance')
-      .select('date, time_in, time_out, station, location_in, location_out, photo_in, photo_out')
-      .eq('user_id', session.user.id)
-      .order('time_in', { ascending: false });
-
-    if (!error) setRecords(data);
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    fetchAttendanceRecords();
-  }, []);
 
   const formatTime = (ts) => {
     if (!ts) return '-';
@@ -177,30 +195,24 @@ export default function Dashboard({ session }) {
     const totalHours = diffMs / (1000 * 60 * 60);
     return totalHours.toFixed(2);
   };
-const filteredRecords = records.filter((rec) => {
-  if (!rec.date) return false;
 
-  const recordDate = new Date(rec.date);
-  const today = new Date();
-  const pastWeek = new Date();
-  pastWeek.setDate(today.getDate() - 6); // includes today and 6 days before
-
-  // Remove the time portion for clean comparison
-  recordDate.setHours(0, 0, 0, 0);
-  today.setHours(0, 0, 0, 0);
-  pastWeek.setHours(0, 0, 0, 0);
-
-  return recordDate <= today && recordDate >= pastWeek;
-});
+  const filteredRecords = records.filter((rec) => {
+    if (!rec.date) return false;
+    const recordDate = new Date(rec.date);
+    const today = new Date();
+    const pastWeek = new Date();
+    pastWeek.setDate(today.getDate() - 6);
+    recordDate.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+    pastWeek.setHours(0, 0, 0, 0);
+    return recordDate <= today && recordDate >= pastWeek;
+  });
 
   return (
     <div className="employee-dashboard-container">
       <h2 className="employee-dashboard-welcome-header">Welcome {userProfile?.full_name || session.user.email}</h2>
       <p className="employee-dashboard-role">Role: {userProfile?.role || 'employee'}</p>
-      <button
-        onClick={() => supabase.auth.signOut()}
-        className="employee-dashboard-logout-btn"
-      >
+      <button onClick={() => supabase.auth.signOut()} className="employee-dashboard-logout-btn">
         Log Out
       </button>
 
@@ -213,20 +225,18 @@ const filteredRecords = records.filter((rec) => {
             onChange={(e) => setStation(e.target.value)}
             placeholder="Enter your station"
             className="employee-dashboard-station-input"
+            disabled={attendanceStatus !== 'Time In'}
           />
         </label>
       </div>
 
       <div className="employee-dashboard-camera-section">
         {!cameraOn ? (
-          <button
-            onClick={() => setCameraOn(true)}
-            className="employee-dashboard-start-camera-btn"
-          >
+          <button onClick={() => setCameraOn(true)} className="employee-dashboard-start-camera-btn">
             Start Camera
           </button>
         ) : (
-          <div className="eemployee-dashboard-camera-active">
+          <div className="employee-dashboard-camera-active">
             <Webcam
               audio={false}
               ref={webcamRef}
@@ -234,17 +244,16 @@ const filteredRecords = records.filter((rec) => {
               className="employee-dashboard-webcam"
               width={320}
               height={240}
+              videoConstraints={{ facingMode: 'user' }}
             />
             <button
               onClick={handleCapture}
-              disabled={attendanceStatus === 'Done' || attendanceStatus === 'loading'}
+              disabled={attendanceStatus === 'loading' || attendanceStatus === 'Done' || processing}
               className={`employee-dashboard-capture-btn ${
-                attendanceStatus === 'loading' || attendanceStatus === 'Done'
-                  ? 'disabled'
-                  : 'enabled'
+                attendanceStatus === 'loading' || attendanceStatus === 'Done' || processing ? 'disabled' : 'enabled'
               }`}
             >
-              {attendanceStatus === 'loading' ? 'Loading...' : attendanceStatus}
+              {processing ? 'Processing...' : attendanceStatus}
             </button>
           </div>
         )}
@@ -259,11 +268,7 @@ const filteredRecords = records.filter((rec) => {
             <table className="employee-dashboard-table">
               <thead>
                 <tr>
-                  {[
-                    'Date', 'Time In', 'Time Out', 'Total Hours',
-                    'Station', 'Location In', 'Location Out',
-                    'Photo In', 'Photo Out'
-                  ].map((header, idx) => (
+                  {['Date', 'Time In', 'Time Out', 'Total Hours', 'Station', 'Location In', 'Location Out', 'Photo In', 'Photo Out'].map((header, idx) => (
                     <th key={idx}>{header}</th>
                   ))}
                 </tr>
@@ -285,17 +290,17 @@ const filteredRecords = records.filter((rec) => {
                         </a>
                       ) : '-'}
                     </td>
-                    <td className="border border-red-700 p-2">
+                    <td>
                       {rec.location_out ? (
                         <a href={`https://www.google.com/maps?q=${rec.location_out}`} target="_blank" rel="noreferrer">
                           {rec.location_out}
                         </a>
                       ) : '-'}
                     </td>
-                    <td className="border border-red-700 p-2">
+                    <td>
                       {rec.photo_in ? <img src={rec.photo_in} alt="In" className="w-16 h-12 object-cover rounded" /> : '-'}
                     </td>
-                    <td className="border border-red-700 p-2">
+                    <td>
                       {rec.photo_out ? <img src={rec.photo_out} alt="Out" className="w-16 h-12 object-cover rounded" /> : '-'}
                     </td>
                   </tr>

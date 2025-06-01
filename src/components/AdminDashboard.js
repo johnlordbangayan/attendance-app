@@ -51,18 +51,27 @@ export default function AdminDashboard({ session, userProfile }) {
   };
 
   const deleteField = async (id, fieldType) => {
-    const confirmDelete = window.confirm(`Are you sure you want to delete Time ${fieldType === 'in' ? 'In' : 'Out'}?`);
-    if (!confirmDelete) return;
+  const confirmDelete = window.confirm(
+    fieldType === 'in'
+      ? 'Are you sure you want to delete this entire record (Time In)?'
+      : 'Are you sure you want to delete Time Out?'
+  );
+  if (!confirmDelete) return;
 
-    const updateFields =
-      fieldType === 'in'
-        ? { time_in: null, location_in: null, photo_in: null }
-        : { time_out: null, location_out: null, photo_out: null };
-
+  if (fieldType === 'in') {
+    // Delete the entire attendance record
+    const { error } = await supabase.from('attendance').delete().eq('id', id);
+    if (error) return alert('Error deleting record');
+  } else {
+    // Only clear Time Out-related fields
+    const updateFields = { time_out: null, location_out: null, photo_out: null };
     const { error } = await supabase.from('attendance').update(updateFields).eq('id', id);
     if (error) return alert('Error updating record');
-    fetchRecords();
-  };
+  }
+
+  fetchRecords();
+};
+
 
   const exportCSV = () => {
   // Only include records with a valid profile (i.e., filtered correctly)
